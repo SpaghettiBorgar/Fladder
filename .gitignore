@@ -87,4 +87,8 @@ lib/**/*.chopper.dart
 lib/**/*.g.dart
 lib/jellyfin/*.swagger.dart
 
+# Pigeon output - recreate with: `for f in pigeons/*.dart; do dart run pigeon --input "$f"; done`
+**/*.g.kt
+**/*.g.swift
+
 android/build/reports/problems/
