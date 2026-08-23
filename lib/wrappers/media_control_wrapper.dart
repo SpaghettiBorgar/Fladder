@@ -23,6 +23,7 @@ import 'package:fladder/models/playback/playback_model.dart';
 import 'package:fladder/models/playback/playback_queue_state.dart';
 import 'package:fladder/models/settings/video_player_settings.dart';
 import 'package:fladder/providers/api_provider.dart';
+import 'package:fladder/providers/audio_lyrics_provider.dart';
 import 'package:fladder/providers/live_tv_provider.dart';
 import 'package:fladder/providers/settings/client_settings_provider.dart';
 import 'package:fladder/providers/settings/subtitle_settings_provider.dart';
@@ -96,7 +97,7 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
         builder: () => this,
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'nl.jknaapen.fladder.channel.playback',
-          androidNotificationChannelName: 'Video playback',
+          androidNotificationChannelName: 'Media playback',
           androidNotificationIcon: 'drawable/ic_notification',
           androidNotificationOngoing: true,
           androidStopForegroundOnPause: true,
@@ -257,15 +258,20 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     }
 
     subscriptions.add(_player!.stateStream.listen((value) {
+      final keepForegroundAlive = value.playing || value.buffering || _audioQueueTransitioning;
+
       playbackState.add(playbackState.value.copyWith(
         bufferedPosition: value.buffer,
         processingState: value.buffering ? AudioProcessingState.buffering : AudioProcessingState.ready,
         updatePosition: value.position,
-        playing: value.playing,
+        playing: keepForegroundAlive,
       ));
+
       smtc?.setPosition(value.position);
       smtc?.setPlaybackStatus(value.playing ? PlaybackStatus.playing : PlaybackStatus.paused);
-      unawaited(_applyWakelock(_shouldKeepScreenOn(value.playing)));
+
+      unawaited(_applyWakelock(_shouldKeepScreenOn(keepForegroundAlive)));
+
       if (value.completed && !_audioQueueTransitioning) {
         _onAudioTrackCompleted();
       }
@@ -284,10 +290,13 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
         final next = _mpvPlaylistItems[_mpvPlaylistCurrentIndex + 1];
         if (!_shouldCrossfade(current, next, manual: true)) {
           await (_player as LibMPV).playerNext();
+          await Future.delayed(const Duration(milliseconds: 125));
+          await _player?.play();
           return;
         }
       }
       await _playNextQueueItem(manual: true);
+      await _player?.play();
       return;
     }
     return loadNextVideo();
@@ -298,6 +307,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
     if (_isAudioQueueMode) {
       if (_player?.lastState.position != null && _player!.lastState.position >= const Duration(seconds: 3)) {
         await _player?.seek(Duration.zero);
+        await Future.delayed(const Duration(milliseconds: 125));
+        await _player?.play();
         return;
       }
       final wasRepeatOne = await _disableRepeatOneForSkip();
@@ -306,6 +317,8 @@ class MediaControlsWrapper extends BaseAudioHandler implements VideoPlayerContro
         final previous = _mpvPlaylistItems[_mpvPlaylistCurrentIndex - 1];
         if (!_shouldCrossfade(current, previous, manual: true)) {
           await (_player as LibMPV).playerPrevious();
+          await Future.delayed(const Duration(milliseconds: 125));
+          await _player?.play();
           return;
         }
       }

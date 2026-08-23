@@ -68,6 +68,8 @@ extension AudioQueueHandler on MediaControlsWrapper {
       ref.read(windowTitleProvider.notifier).setPlayTitle(currentItem.windowTitle(context.localized));
     }
 
+    unawaited(ref.read(audioLyricsProvider.notifier).loadForTrack(currentItem.id));
+
     final playbackModel = ref.read(playBackModel);
     if (playbackModel != null) {
       await _refreshMediaControls(model: playbackModel, playing: false);
@@ -253,6 +255,7 @@ extension AudioQueueHandler on MediaControlsWrapper {
     }
 
     await updatedModel.playbackStarted(startPosition, ref);
+    unawaited(ref.read(audioLyricsProvider.notifier).loadForTrack(item.id));
     await _refreshMediaControls(model: updatedModel, playing: true);
   }
 
@@ -290,6 +293,7 @@ extension AudioQueueHandler on MediaControlsWrapper {
       final newItem = _mpvPlaylistItems[newIndex];
       final fromId = playbackModel.item.id;
       final newQueueState = playbackModel.playbackQueue.advanceFromCurrentTo(fromId, newItem.id);
+
       await _applyQueueItem(newItem, newQueueState, playbackModel, Duration.zero, load: false);
     });
     await _syncMpvPlaylist();
@@ -302,6 +306,7 @@ extension AudioQueueHandler on MediaControlsWrapper {
     }
     if (!_isAudioQueueMode || _player is! LibMPV) return;
     _syncingPlaylist = true;
+
     try {
       final playbackModel = ref.read(playBackModel);
       if (playbackModel == null) return;
@@ -311,16 +316,18 @@ extension AudioQueueHandler on MediaControlsWrapper {
         _mpvPlaylistCurrentIndex = 0;
         return;
       }
+
       if (_mpvPlaylistCurrentIndex >= _mpvPlaylistItems.length) {
         _mpvPlaylistCurrentIndex = _mpvPlaylistItems.length - 1;
       }
 
-      for (var i = _mpvPlaylistItems.length - 1; i > _mpvPlaylistCurrentIndex; i--) {
-        await player.removeFromPlaylist(i);
+      if (playbackModel.playbackQueue.repeatMode == AudioRepeatMode.one) {
+        for (var i = _mpvPlaylistItems.length - 1; i > _mpvPlaylistCurrentIndex; i--) {
+          await player.removeFromPlaylist(i);
+        }
+        _mpvPlaylistItems = _mpvPlaylistItems.sublist(0, _mpvPlaylistCurrentIndex + 1);
+        return;
       }
-      _mpvPlaylistItems = _mpvPlaylistItems.sublist(0, _mpvPlaylistCurrentIndex + 1);
-
-      if (playbackModel.playbackQueue.repeatMode == AudioRepeatMode.one) return;
 
       final buffer = _prefetchBuffer;
       if (buffer == null) return;
@@ -328,20 +335,40 @@ extension AudioQueueHandler on MediaControlsWrapper {
 
       final refreshedModel = ref.read(playBackModel);
       if (refreshedModel == null) return;
-      final resolver = AudioUrlResolver(ref);
-      final queued = <String>{};
 
-      for (final item in refreshedModel.playbackQueue.queueAheadForPrefetch()) {
-        if (queued.contains(item.id)) continue;
+      final desiredNextItems = refreshedModel.playbackQueue.queueAheadForPrefetch();
+      final currentAheadItems = _mpvPlaylistItems.sublist(_mpvPlaylistCurrentIndex + 1);
+
+      bool mismatch = false;
+      for (int i = 0; i < currentAheadItems.length; i++) {
+        if (i >= desiredNextItems.length || currentAheadItems[i].id != desiredNextItems[i].id) {
+          mismatch = true;
+          break;
+        }
+      }
+
+      if (mismatch) {
+        for (var i = _mpvPlaylistItems.length - 1; i > _mpvPlaylistCurrentIndex; i--) {
+          await player.removeFromPlaylist(i);
+        }
+        _mpvPlaylistItems = _mpvPlaylistItems.sublist(0, _mpvPlaylistCurrentIndex + 1);
+      }
+
+      final resolver = AudioUrlResolver(ref);
+
+      final itemsToAddStart = mismatch ? 0 : currentAheadItems.length;
+
+      for (int i = itemsToAddStart; i < desiredNextItems.length; i++) {
         if (_mpvPlaylistItems.length - _mpvPlaylistCurrentIndex - 1 >= buffer.bufferSize) break;
 
+        final item = desiredNextItems[i];
         buffer.prefetch([item], resolver);
+
         final url = await buffer.getUrl(item.id);
         if (url == null || url.isEmpty) break;
 
         await player.addToPlaylist(url);
         _mpvPlaylistItems.add(item);
-        queued.add(item.id);
       }
     } finally {
       _syncingPlaylist = false;
