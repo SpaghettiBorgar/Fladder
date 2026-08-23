@@ -38,3 +38,6 @@ linter:
     unnecessary_this: true
     sort_pub_dependencies: true
     use_key_in_widget_constructors: true
+
+formatter:
+  page_width: 120

@@ -61,7 +61,7 @@ flutter gen-l10n
 ```
 Format files to spec:
 ```bash
-dart format --line-length 120 ./lib/
+dart format ./lib/
 ```
 
 ## 🌐 Using a demo Server
