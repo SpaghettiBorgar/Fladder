@@ -168,6 +168,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate code
+        shell: bash
+        run: |
+          for f in pigeons/*.dart; do dart run pigeon --input "$f"; done
+          dart run build_runner build --delete-conflicting-outputs
+
       - name: Build Android APK (PRs)
         if: needs.fetch-info.outputs.build_type == 'development'
         run: |
@@ -225,6 +231,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate code
+        shell: bash
+        run: |
+          for f in pigeons/*.dart; do dart run pigeon --input "$f"; done
+          dart run build_runner build --delete-conflicting-outputs
+
       - name: Build Windows EXE
         run: flutter build windows --build-number=${{ github.run_number }}
 
@@ -270,6 +282,12 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
+      - name: Generate code
+        shell: bash
+        run: |
+          for f in pigeons/*.dart; do dart run pigeon --input "$f"; done
+          dart run build_runner build --delete-conflicting-outputs
+
       - name: Build iOS app
         run: flutter build ipa --no-codesign --flavor production --build-number=${{ github.run_number }}
 
@@ -304,6 +322,12 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate code
+        shell: bash
+        run: |
+          for f in pigeons/*.dart; do dart run pigeon --input "$f"; done
+          dart run build_runner build --delete-conflicting-outputs
 
       - name: Build macOS app
         run: flutter build macos --flavor production --build-number=${{ github.run_number }}
@@ -348,6 +372,12 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate code
+        shell: bash
+        run: |
+          for f in pigeons/*.dart; do dart run pigeon --input "$f"; done
+          dart run build_runner build --delete-conflicting-outputs
 
       - name: Get packages
         run: |
@@ -437,6 +467,12 @@ jobs:
 
       - name: Get dependencies
         run: flutter pub get
+
+      - name: Generate code
+        shell: bash
+        run: |
+          for f in pigeons/*.dart; do dart run pigeon --input "$f"; done
+          dart run build_runner build --delete-conflicting-outputs
 
       - name: Build web app
         run: |
