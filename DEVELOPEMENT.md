@@ -4,7 +4,9 @@
 
 Ensure the following tools are installed:
 
-- [Flutter SDK](https://flutter.dev/docs/get-started/install) (latest stable)
+- [FVM](https://fvm.app/) — installs the Flutter version pinned in `.fvmrc` via `fvm install`.
+  The `make` targets call `fvm flutter`; pass `FVM=` to use a system-wide Flutter instead.
+- `make`
 - [Android Studio](https://developer.android.com/studio) (for Android development and emulators)
 - [VS Code](https://code.visualstudio.com/) with:
   - Flutter extension
@@ -13,7 +15,7 @@ Ensure the following tools are installed:
 Verify your Flutter setup with:
 
 ```bash
-flutter doctor
+fvm flutter doctor
 ```
 
 ## 🚀 Quick Start
@@ -23,8 +25,37 @@ flutter doctor
 git clone https://github.com/DonutWare/Fladder.git
 cd Fladder
 
-# Install dependencies
-flutter pub get
+# Install dependencies and generate code
+make bootstrap
+```
+
+All generated code is gitignored, so `make bootstrap` (or the manual steps under
+[Code Generation](#️-code-generation)) is required before the project will analyze or build.
+
+Run `make help` to list every target. Common ones:
+
+```bash
+make run                # debug run, prompts if several devices are connected
+make run-linux          # debug run on a named device (run-android, run-macos, ...)
+make run-web            # debug run in Chrome on WEB_PORT=9090
+make check              # format check + analysis + tests
+make all                # bootstrap, check, and build a release for the current host
+```
+
+Variables can be overridden on any target:
+
+| Variable | Default | Notes |
+| --- | --- | --- |
+| `FLAVOR` | `development` | `development` or `production`; Android/iOS/macOS only |
+| `MODE` | `release` | `debug`, `profile` or `release`, for `build-*` targets |
+| `BUILD_NUMBER` | `1` | |
+| `DEVICE` / `ARGS` | – | passed through to `flutter run`/`build` |
+| `FVM` | `fvm` | set `FVM=` to use the `flutter` already on your `PATH` |
+
+```bash
+make build-apk MODE=debug           # debug APKs of the development flavor
+make build-macos FLAVOR=production  # production macOS app
+make release-web                    # codegen + production release build
 ```
 
 ## 🐧 Linux Dependencies
@@ -43,26 +74,36 @@ sudo apt install libmpv-dev
    - Press `F5` or go to **Run > Start Debugging**.
    - If prompted, select **"Run Anyway"**.
 
+Or from the terminal with `make run` / `make run-<device>` (see Quick Start).
+
+## 📦 Android Signing
+
+Release Android builds are signed with the debug key unless `android/app/key.properties`
+exists. To sign with your own keystore, place `keystore.jks` next to it and add:
+
+```properties
+storePassword=...
+keyPassword=...
+keyAlias=...
+```
+
+Both files are gitignored.
+
 ## ⚙️ Code Generation
 
-Generate build files (e.g., for `json_serializable`, `freezed`, etc.):
+`make codegen` runs every generator and formats the result. The individual steps:
 
 ```bash
-flutter pub run build_runner build
+make pigeon        # platform-channel bindings from pigeons/*.dart
+make build-runner  # json_serializable, freezed, dart_mappable, chopper, auto_route, drift, ...
+make l10n          # localizations from lib/l10n/*.arb
+make format        # build_runner emits 80-column code; the project uses 120
 ```
 
-> Tip: Use `watch` for continuous builds during development:
-```bash
-flutter pub run build_runner watch
-```
-Update localization definitions:
-```bash
-flutter gen-l10n
-```
-Format files to spec:
-```bash
-dart format ./lib/
-```
+> Tip: Use `make watch` for continuous builds during development. Its output is not
+> formatted as it goes, so run `make format` before committing.
+
+Use `make regen` to delete all generated sources and rebuild them from scratch.
 
 ## 🌐 Using a demo Server
 You can use a fake server from Jellyfin.

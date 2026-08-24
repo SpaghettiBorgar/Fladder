@@ -25,5 +25,6 @@
     "packages",
     "lib/jellyfin",
     "lib/l10n"
-  ]
+  ],
+  "makefile.configureOnOpen": false
 }
