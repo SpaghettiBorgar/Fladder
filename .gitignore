@@ -78,4 +78,17 @@ Output
 
 # Generated localizations
 lib/l10n/generated
+
+# Generated code - recreate with `dart run build_runner build --delete-conflicting-outputs`
+lib/**/*.freezed.dart
+lib/**/*.mapper.dart
+lib/**/*.gr.dart
+lib/**/*.chopper.dart
+lib/**/*.g.dart
+lib/jellyfin/*.swagger.dart
+
+# Pigeon output - recreate with: `for f in pigeons/*.dart; do dart run pigeon --input "$f"; done`
+**/*.g.kt
+**/*.g.swift
+
 android/build/reports/problems/

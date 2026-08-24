@@ -33,8 +33,8 @@ jobs:
           cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
           cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
 
-      - name: Get dependencies
-        run: flutter pub get
+      - name: Get dependencies and generate code
+        run: make bootstrap FVM=
 
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1

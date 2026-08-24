@@ -6,7 +6,7 @@ import 'package:pigeon/pigeon.dart';
     kotlinOut: 'android/app/src/main/kotlin/nl/jknaapen/fladder/wallpaper/WallpaperApi.g.kt',
     kotlinOptions: KotlinOptions(
       package: 'nl.jknaapen.fladder.wallpaper',
-      includeErrorClass: false,
+      includeErrorClass: true,
     ),
     dartPackageName: 'nl_jknaapen_fladder.wallpaper',
   ),

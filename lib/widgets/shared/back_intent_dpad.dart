@@ -34,11 +34,11 @@ class BackIntentDpad extends StatelessWidget {
           if (event.logicalKey == LogicalKeyboardKey.backspace) {
             if (isEditableTextFocused()) {
               return KeyEventResult.ignored;
-          } else {
+            } else {
               context.maybePop();
               return KeyEventResult.handled;
+            }
           }
-        }
 
           return KeyEventResult.ignored;
         },
